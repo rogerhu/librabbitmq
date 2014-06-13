@@ -1017,10 +1017,10 @@ PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *self, PyObject *args)
     Py_BEGIN_ALLOW_THREADS;
     self->sockfd = amqp_socket_get_sockfd(socket);
 
-    if (!PyArg_ParseTuple(args, "I", &properties))
-      goto bail;
-
+    //    if (!PyArg_ParseTuple(args, "I", &properties))
     if (args) {
+      //      PyArg_ParseTuple(args, "O!", &PyDict_Type, &properties);
+
       //      client_properties = PyDict_ToAMQTable(self->conn, &properties, &pool);
 
       if (PyErr_Occurred())

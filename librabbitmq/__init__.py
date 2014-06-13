@@ -185,6 +185,7 @@ class Connection(_librabbitmq.Connection):
         self.channels = {}
         self._avail_channel_ids = array('H', xrange(self.channel_max, 0, -1))
         if not lazy:
+            import pdb; pdb.set_trace()
             self.connect()
 
     def __enter__(self):

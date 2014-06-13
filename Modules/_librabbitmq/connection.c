@@ -984,11 +984,15 @@ PyRabbitMQ_Connection_fileno(PyRabbitMQ_Connection *self)
  * Connection.connect()
  */
 static PyObject*
-PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *self)
+PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *self, PyObject *args)
 {
     int status;
     amqp_socket_t *socket = NULL;
     amqp_rpc_reply_t reply;
+    amqp_table_t client_properties;
+    amqp_pool_t *pool;
+    //    PyObject *properties = NULL;
+    int properties;
 
     if (self->connected) {
         PyErr_SetString(PyRabbitMQExc_ConnectionError, "Already connected");
@@ -1012,9 +1016,26 @@ PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *self)
 
     Py_BEGIN_ALLOW_THREADS;
     self->sockfd = amqp_socket_get_sockfd(socket);
-    reply = amqp_login(self->conn, self->virtual_host, self->channel_max,
-                       self->frame_max, self->heartbeat,
-                       AMQP_SASL_METHOD_PLAIN, self->userid, self->password);
+
+    if (!PyArg_ParseTuple(args, "I", &properties))
+      goto bail;
+
+    if (args) {
+      //      client_properties = PyDict_ToAMQTable(self->conn, &properties, &pool);
+
+      if (PyErr_Occurred())
+        goto bail;
+
+      /* reply = amqp_login_with_properties(self->conn, self->virtual_host, self->channel_max, */
+      /*                                    self->frame_max, self->heartbeat, */
+      /*                                    &client_properties, */
+      /*                                    AMQP_SASL_METHOD_PLAIN, self->userid, self->password); */
+    }
+    /* else { */
+      reply = amqp_login(self->conn, self->virtual_host, self->channel_max,
+                         self->frame_max, self->heartbeat,
+                         AMQP_SASL_METHOD_PLAIN, self->userid, self->password);
+      /*}*/
     Py_END_ALLOW_THREADS;
     if (PyRabbitMQ_HandleAMQError(self, 0, reply, "Couldn't log in"))
         goto bail;

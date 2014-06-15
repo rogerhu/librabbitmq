@@ -161,6 +161,15 @@ AMQTable_SetStringValue(amqp_table_t *table,
 }
 
 _PYRMQ_INLINE void
+AMQTable_SetBoolValue(amqp_table_t *table,
+                       amqp_bytes_t key, int value)
+{
+    amqp_table_entry_t *entry = AMQTable_AddEntry(table, key);
+    entry->value.kind = AMQP_FIELD_KIND_BOOLEAN;
+    entry->value.value.boolean = value;
+}
+
+_PYRMQ_INLINE void
 AMQTable_SetIntValue(amqp_table_t *table,
                      amqp_bytes_t key, int value)
 {
@@ -266,6 +275,16 @@ PyDict_ToAMQTable(amqp_connection_state_t conn, PyObject *src, amqp_pool_t *pool
             AMQTable_SetArrayValue(&dst,
                     PyString_AS_AMQBYTES(dkey),
                     PyIter_ToAMQArray(conn, dvalue, pool));
+        }
+        else if (PyBool_Check(dvalue)) {
+          /* Bool */
+          clong_value = 0;
+          if (dvalue == Py_True)
+            clong_value = 1;
+
+          AMQTable_SetBoolValue(&dst,
+                                PyString_AS_AMQBYTES(dkey),
+                                clong_value);
         }
         else if (PyLong_Check(dvalue) || PyInt_Check(dvalue)) {
             /* Int | Long */
@@ -989,16 +1008,23 @@ PyRabbitMQ_Connection_fileno(PyRabbitMQ_Connection *self)
  * Connection.connect()
  */
 static PyObject*
-PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *self, PyObject *args)
+PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *self, PyObject *args, PyObject *kwargs)
 {
     int status;
     amqp_socket_t *socket = NULL;
     amqp_rpc_reply_t reply;
-    PyObject *properties;
+    PyObject *client_properties;
     amqp_pool_t pool;
-    amqp_table_t client_properties;
+    amqp_table_t properties;
 
-    if(!PyArg_ParseTuple(args, "|O", &properties)) {
+    char errstr[512];
+
+    static char *kwlist[] = {
+      "client_properties",
+      NULL
+    };
+
+    if(!PyArg_ParseTupleAndKeywords(args, kwargs, "|O", kwlist, &client_properties)) {
       goto bail;
     }
 
@@ -1025,14 +1051,14 @@ PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *self, PyObject *args)
     Py_BEGIN_ALLOW_THREADS;
     self->sockfd = amqp_socket_get_sockfd(socket);
 
-    if (PyDict_Check(properties)) {
+    if (PyDict_Check(client_properties)) {
       init_amqp_pool(&pool, self->frame_max);
-      client_properties = PyDict_ToAMQTable(self->conn, properties, &pool);
+      properties = PyDict_ToAMQTable(self->conn, client_properties, &pool);
 
       reply = amqp_login_with_properties(self->conn, self->virtual_host, self->channel_max,
-                                          self->frame_max, self->heartbeat,
-                                          &client_properties,
-                                          AMQP_SASL_METHOD_PLAIN, self->userid, self->password);
+                                         self->frame_max, self->heartbeat,
+                                         &properties,
+                                         AMQP_SASL_METHOD_PLAIN, self->userid, self->password);
     } else {
       reply = amqp_login(self->conn, self->virtual_host, self->channel_max,
                          self->frame_max, self->heartbeat,
@@ -1040,8 +1066,9 @@ PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *self, PyObject *args)
     }
 
     Py_END_ALLOW_THREADS;
+
     if (PyRabbitMQ_HandleAMQError(self, 0, reply, "Couldn't log in"))
-        goto bail;
+      goto bail;
 
     /* after tune */
     self->connected = 1;

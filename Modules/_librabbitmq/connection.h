@@ -165,7 +165,7 @@ static PyObject*
 PyRabbitMQ_Connection_fileno(PyRabbitMQ_Connection *);
 
 static PyObject*
-PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *, PyObject *);
+PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *, PyObject *, PyObject *);
 
 static PyObject*
 PyRabbitMQ_Connection_close(PyRabbitMQ_Connection *);

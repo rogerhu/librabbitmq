@@ -140,6 +140,7 @@ typedef struct {
     int sockfd;
     int connected;
 
+    PyObject *client_properties;
     PyObject *server_properties;
     PyObject *callbacks;    /* {channel_id: {consumer_tag:callback}} */
 
@@ -165,7 +166,7 @@ static PyObject*
 PyRabbitMQ_Connection_fileno(PyRabbitMQ_Connection *);
 
 static PyObject*
-PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *, PyObject *);
+PyRabbitMQ_Connection_connect(PyRabbitMQ_Connection *);
 
 static PyObject*
 PyRabbitMQ_Connection_close(PyRabbitMQ_Connection *);
@@ -263,7 +264,7 @@ static PyMethodDef PyRabbitMQ_ConnectionType_methods[] = {
     {"fileno", (PyCFunction)PyRabbitMQ_Connection_fileno,
         METH_NOARGS, "File descriptor number."},
     {"connect", (PyCFunction)PyRabbitMQ_Connection_connect,
-        METH_VARARGS, "Establish connection to the broker."},
+        METH_NOARGS, "Establish connection to the broker."},
     {"_close", (PyCFunction)PyRabbitMQ_Connection_close,
         METH_NOARGS, "Close connection."},
     {"_channel_open", (PyCFunction)PyRabbitMQ_Connection_channel_open,
